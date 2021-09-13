@@ -24,7 +24,7 @@ public class OpenAPI2MarkupConfigBuilder extends Schema2MarkupConfigBuilder<Open
         this(new MapConfiguration(map));
     }
 
-    private OpenAPI2MarkupConfigBuilder(Configuration configuration) {
+    public OpenAPI2MarkupConfigBuilder(Configuration configuration) {
         super(OpenAPI2MarkupConfigBuilder.class,
                 new OpenSchema2MarkupConfig(),
                 new OpenAPI2MarkupProperties(getCompositeConfiguration(configuration)), configuration);

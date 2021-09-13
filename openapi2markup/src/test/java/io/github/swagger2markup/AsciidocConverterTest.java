@@ -16,6 +16,7 @@
 package io.github.swagger2markup;
 
 import io.github.swagger2markup.assertions.DiffUtils;
+import io.github.swagger2markup.config.builder.OpenAPI2MarkupConfigBuilder;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -25,7 +26,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,7 +64,10 @@ public class AsciidocConverterTest {
         FileUtils.deleteQuietly(outputDirectory.toFile());
 
         //When
-        OpenAPI2MarkupConverter.from(file).build()
+        Map<String, String> configMap = new HashMap<>();
+        configMap.put("swagger2markup.generatedExamplesEnabled", "true");  // enable examples generation
+        final OpenSchema2MarkupConfig config = new OpenAPI2MarkupConfigBuilder(configMap).build();
+        OpenAPI2MarkupConverter.from(file).withConfig(config).build()
                 .toFolder(outputDirectory);
 
         //Then

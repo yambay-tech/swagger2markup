@@ -1,15 +1,26 @@
 package io.github.swagger2markup.internal.document;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+
 import io.github.swagger2markup.OpenAPI2MarkupConverter;
 import io.github.swagger2markup.adoc.ast.impl.SectionImpl;
 import io.github.swagger2markup.adoc.ast.impl.TableImpl;
 import io.github.swagger2markup.extension.MarkupComponent;
 import io.github.swagger2markup.internal.component.ExternalDocumentationComponent;
 import io.github.swagger2markup.internal.component.ParametersComponent;
+import io.github.swagger2markup.internal.component.RequestComponent;
 import io.github.swagger2markup.internal.component.ResponseComponent;
 import io.github.swagger2markup.internal.component.SecurityRequirementTableComponent;
+import io.swagger.models.parameters.BodyParameter;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.Paths;
+import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.servers.ServerVariables;
 import org.apache.commons.lang3.Validate;
@@ -17,14 +28,22 @@ import org.asciidoctor.ast.Document;
 import org.asciidoctor.ast.Section;
 import org.asciidoctor.ast.StructuralNode;
 
-import java.util.*;
-
-import static io.github.swagger2markup.config.OpenAPILabels.*;
-import static io.github.swagger2markup.internal.helper.OpenApiHelpers.*;
+import static io.github.swagger2markup.config.OpenAPILabels.LABEL_SERVER;
+import static io.github.swagger2markup.config.OpenAPILabels.SECTION_TITLE_PATHS;
+import static io.github.swagger2markup.config.OpenAPILabels.SECTION_TITLE_SERVERS;
+import static io.github.swagger2markup.config.OpenAPILabels.TABLE_HEADER_DEFAULT;
+import static io.github.swagger2markup.config.OpenAPILabels.TABLE_HEADER_DESCRIPTION;
+import static io.github.swagger2markup.config.OpenAPILabels.TABLE_HEADER_POSSIBLE_VALUES;
+import static io.github.swagger2markup.config.OpenAPILabels.TABLE_HEADER_VARIABLE;
+import static io.github.swagger2markup.config.OpenAPILabels.TABLE_TITLE_SERVER_VARIABLES;
+import static io.github.swagger2markup.internal.helper.OpenApiHelpers.appendDescription;
+import static io.github.swagger2markup.internal.helper.OpenApiHelpers.italicUnconstrained;
+import static io.github.swagger2markup.internal.helper.OpenApiHelpers.monospaced;
 
 public class PathsDocument extends MarkupComponent<Document, PathsDocument.Parameters, Document> {
     private final ParametersComponent parametersComponent;
     private final ExternalDocumentationComponent externalDocumentationComponent;
+    private final RequestComponent requestComponent;
     private final ResponseComponent responseComponent;
     private final SecurityRequirementTableComponent securityRequirementTableComponent;
 
@@ -32,6 +51,7 @@ public class PathsDocument extends MarkupComponent<Document, PathsDocument.Param
         super(context);
         this.parametersComponent = new ParametersComponent(context);
         this.externalDocumentationComponent = new ExternalDocumentationComponent(context);
+        this.requestComponent = new RequestComponent(context);
         this.responseComponent = new ResponseComponent(context);
         this.securityRequirementTableComponent = new SecurityRequirementTableComponent(context);
     }
@@ -44,7 +64,9 @@ public class PathsDocument extends MarkupComponent<Document, PathsDocument.Param
     public Document apply(Document document, Parameters parameters) {
         Paths apiPaths = parameters.schema.getPaths();
 
-        if (null == apiPaths || apiPaths.isEmpty()) return document;
+        if (null == apiPaths || apiPaths.isEmpty()) {
+            return document;
+        }
 
         SectionImpl allPathsSection = new SectionImpl(document);
         allPathsSection.setTitle(labels.getLabel(SECTION_TITLE_PATHS));
@@ -56,7 +78,8 @@ public class PathsDocument extends MarkupComponent<Document, PathsDocument.Param
                     operationSection.setTitle((italicUnconstrained(httpMethod.name().toUpperCase()) + " " + monospaced(name) + " " + summary).trim());
                     appendDescription(operationSection, operation.getDescription());
                     externalDocumentationComponent.apply(operationSection, operation.getExternalDocs());
-                    parametersComponent.apply(operationSection, operation.getParameters());
+                    parametersComponent.apply(operationSection, getParams(operation));
+                    requestComponent.apply(operationSection, operation.getRequestBody());
                     responseComponent.apply(operationSection, operation.getResponses());
                     appendServersSection(operationSection, operation.getServers());
                     securityRequirementTableComponent.apply(operationSection, operation.getSecurity(), false);
@@ -67,8 +90,15 @@ public class PathsDocument extends MarkupComponent<Document, PathsDocument.Param
         return document;
     }
 
+    private List<Parameter> getParams(Operation operation) {
+        final List<Parameter> parameters = operation.getParameters();
+        return parameters;
+    }
+
     private void appendServersSection(StructuralNode node, List<Server> servers) {
-        if (null == servers || servers.isEmpty()) return;
+        if (null == servers || servers.isEmpty()) {
+            return;
+        }
 
         Section serversSection = new SectionImpl(node);
         serversSection.setTitle(labels.getLabel(SECTION_TITLE_SERVERS));
@@ -86,7 +116,9 @@ public class PathsDocument extends MarkupComponent<Document, PathsDocument.Param
     }
 
     private void appendVariables(Section serverSection, ServerVariables variables) {
-        if (null == variables || variables.isEmpty()) return;
+        if (null == variables || variables.isEmpty()) {
+            return;
+        }
 
         TableImpl serverVariables = new TableImpl(serverSection, new HashMap<String, Object>() {{
             put("header-option", "");

@@ -102,6 +102,7 @@ public class ExamplesUtil {
             PathExample requestPathGenerator,
             Map<String, Model> definitions,
             MarkupDocBuilder markupDocBuilder) {
+
         boolean generateMissingExamples = requestPathGenerator.getContext().getConfig().isGeneratedExamplesEnabled();
         DocumentResolver definitionDocumentResolver = requestPathGenerator.getDefinitionDocumentResolver();
 
